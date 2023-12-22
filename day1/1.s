@@ -1,8 +1,6 @@
 .data
 filename:
 .ascii "input.txt\0"
-newline:
-.ascii "\a\0"
 part1_answer:
 .ascii "part1: %d\n\0"
 part2_answer:
