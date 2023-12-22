@@ -112,38 +112,49 @@ part2:
 	ldr x4, [x0]
 
 	adr x6, numbers
+
+	mov w8, 9
+	and x5, x4, 0xffffffff
+	ldr x7, [x6, 64]
+	cmp x5, x7
+	beq .Lpart2_set
+	sub w8, w8, 1
+	and x5, x4, 0xffffffffff
+	ldr x7, [x6, 56]
+	cmp x5, x7
+	beq .Lpart2_set
+	sub w8, w8, 1
+	ldr x7, [x6, 48]
+	cmp x5, x7
+	beq .Lpart2_set
+	sub w8, w8, 1
+	and w5, w4, 0xffffff
+	ldr x7, [x6, 40]
+	cmp w5, w7
+	beq .Lpart2_set
+	sub w8, w8, 1
+	and x5, x4, 0xffffffff
+	ldr x7, [x6, 32]
+	cmp x5, x7
+	beq .Lpart2_set
+	sub w8, w8, 1
+	ldr x7, [x6, 24]
+	cmp x5, x7
+	beq .Lpart2_set
+	sub w8, w8, 1
 	and x5, x4, 0xffffffffff
 	ldr x7, [x6, 16]
 	cmp x5, x7
-	beq .Lpart2_three
-	ldr x7, [x6, 48]
-	cmp x5, x7
-	beq .Lpart2_seven
-	ldr x7, [x6, 56]
-	cmp x5, x7
-	beq .Lpart2_eight
-
-	and x5, x4, 0xffffffff
-	ldr x7, [x6, 24]
-	cmp x5, x7
-	beq .Lpart2_four
-	ldr x7, [x6, 32]
-	cmp x5, x7
-	beq .Lpart2_five
-	ldr x7, [x6, 64]
-	cmp x5, x7
-	beq .Lpart2_nine
-
+	beq .Lpart2_set
+	sub w8, w8, 1
 	and w5, w4, 0xffffff
-	ldr x7, [x6]
-	cmp w5, w7
-	beq .Lpart2_one
 	ldr x7, [x6, 8]
 	cmp w5, w7
-	beq .Lpart2_two
-	ldr x7, [x6, 40]
+	beq .Lpart2_set
+	sub w8, w8, 1
+	ldr x7, [x6]
 	cmp w5, w7
-	beq .Lpart2_six
+	beq .Lpart2_set
 
 	and w4, w4, 0xff
 	cmp w4, 0
@@ -155,44 +166,17 @@ part2:
 	blt .Lpart2_next
 	cmp w4, 0x39
 	bgt .Lpart2_next
-	sub w4, w4, 0x30
+	sub w8, w4, 0x30
 .Lpart2_set:
 	cmp w2, 0
 	bge .Lpart2_last
-	mov w2, w4
+	mov w2, w8
 .Lpart2_last:
-	mov w3, w4
+	mov w3, w8
 
 .Lpart2_next:
 	add x0, x0, 1
 	b .Lpart2_loop
-.Lpart2_one:
-	mov w4, 1
-	b .Lpart2_set
-.Lpart2_two:
-	mov w4, 2
-	b .Lpart2_set
-.Lpart2_three:
-	mov w4, 3
-	b .Lpart2_set
-.Lpart2_four:
-	mov w4, 4
-	b .Lpart2_set
-.Lpart2_five:
-	mov w4, 5
-	b .Lpart2_set
-.Lpart2_six:
-	mov w4, 6
-	b .Lpart2_set
-.Lpart2_seven:
-	mov w4, 7
-	b .Lpart2_set
-.Lpart2_eight:
-	mov w4, 8
-	b .Lpart2_set
-.Lpart2_nine:
-	mov w4, 9
-	b .Lpart2_set
 
 .Lpart2_newline:
 	mov w4, 10
