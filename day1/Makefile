@@ -5,8 +5,10 @@ all: clean 1
 run: 1
 	./1
 
-1: 1.s
-	gcc -o 1 1.s
+1: 1.s ../lib/*
+	as -o 1.o 1.s
+	ld -o 1 1.o
 
+.PHONY: clean
 clean:
-	rm -f 1
+	rm -f 1 *.o

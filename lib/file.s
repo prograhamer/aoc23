@@ -1,80 +1,60 @@
-readfile:
+read_file:
 	stp x29, lr, [sp, -0x10]!
+	// x19: filename / mapped addr
+	// w20: file handle
+	stp x19, x20, [sp, -0x10]!
 	mov x29, sp
 
-	// [x29, -0x08]: filename
-	// [x29, -0x0c]: file handle
-	// [x29, -0x10]: buffer length
-	// [x29, -0x18]: buffer
-	// [x29, -0x1c]: offset
-	sub sp, sp, 0x20
-	str x0, [x29, -0x08]
+	mov x19, x0
+
+	// sizeof(struct stat) = 0x80
+	sub sp, sp, 0x80
+
+	// fstatat(AT_FDCWD, arg0, sp, 0)
+	mov x0, -100 // AT_FDCWD
+	mov x1, x19
+	mov x2, sp
+	mov x3, 0
+	mov w8, 79
+	svc 0
+	tst w0, w0
+	b.mi .Lreadfile_err
 
 	// openat(AT_FDCWD, arg0, O_RDONLY, 0)
 	mov x0, -100 // AT_FDCWD
-	ldr x1, [x29, -0x08]
+	mov x1, x19
 	mov x2, 0
 	mov x3, 0
 	mov w8, 56 // openat
 	svc 0
 	tst w0, w0
 	b.mi .Lreadfile_err
-	str w0, [x29, -0x0c]
+	mov w20, w0
 
-	// allocate buffer
-	mov w0, 0x1000
-	str w0, [x29, -0x10]
-	mov w1, 1
-	bl calloc
-	tst x0, x0
-	b.eq .Lreadfile_err
-	str x0, [x29, -0x18]
-
-	// offset = 0
-	mov w1, 0
-	str w1, [x29, -0x1c]
-
-.Lreadfile_loop:
-	// read(fd, &buffer[offset], buffer_len - offset)
-	ldr w0, [x29, -0x0c]
-	ldr x1, [x29, -0x18]
-	ldr w3, [x29, -0x1c]
-	add x1, x1, w3, sxtw
-	ldr w2, [x29, -0x10]
-	sub w2, w2, w3
-	mov w8, 63 // read
+	// mmap(NULL, stat_buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)
+	mov x0, 0
+	ldr x1, [sp, 0x30]
+	mov w2, 1 // PROT_READ
+	mov w3, 2 // MAP_PRIVATE
+	mov w4, w20
+	mov x5, 0
+	mov w8, 222
 	svc 0
-	cmp w0, 0
-	b.mi .Lreadfile_err
-	b.eq .Lreadfile_term
-
-	ldr w2, [x29, -0x1c]
-	add w2, w2, w0
-	str w2, [x29, -0x1c]
-
-	ldr w1, [x29, -0x10]
-	add w2, w2, 1
-	cmp w1, w2
-	b.gt .Lreadfile_loop
-
-	ldr x0, [x29, -0x18]
-	ldr w1, [x29, -0x10]
-	lsl w1, w1, 1
-	str w1, [x29, -0x10]
-	bl realloc
 	tst x0, x0
-	b.eq .Lreadfile_err
-	str x0, [x29, -0x18]
-	b .Lreadfile_loop
+	b.mi .Lreadfile_err
+	mov x19, x0
 
-.Lreadfile_term:
-	ldr x0, [x29, -0x18]
-	ldr w1, [x29, -0x1c]
-	//add x1, x0, w1, uxtw
-	mov w2, 0
-	strb w2, [x0, w1, uxtw]
+	// close(fd)
+	mov w0, w20
+	mov w8, 57
+	svc 0
+	tst w0, w0
+	b.mi .Lreadfile_err
+
+	mov x0, x19
 .Lreadfile_ret:
 	mov sp, x29
+	ldp x19, x20, [sp], 0x10
 	ldp x29, lr, [sp], 0x10
 	ret
 .Lreadfile_err:

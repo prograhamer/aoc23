@@ -2,9 +2,9 @@
 filename:
 .ascii "input.txt\0"
 part1_answer:
-.ascii "part1: %d\n\0"
+.ascii "part1: \0"
 part2_answer:
-.ascii "part2: %d\n\0"
+.ascii "part2: \0"
 
 numbers:
 .ascii "one\0\0\0\0\0"
@@ -19,36 +19,34 @@ numbers:
 
 .text
 .include "../lib/file.s"
+.include "../lib/output.s"
 
-.globl main
-main:
-	stp x29, lr, [sp, -0x10]!
-	str x19, [sp, -0x10]!
-
+.globl _start
+_start:
 	adr x0, filename
-	bl readfile
+	bl read_file
 	tst x0, x0
 	b.eq .Lmain_err
 	mov x19, x0
 
-	bl part1
-
-	mov w1, w0
 	adr x0, part1_answer
-	bl printf
+	bl put_string
+
+	mov x0, x19
+	bl part1
+	bl put_int
+
+	adr x0, part2_answer
+	bl put_string
 
 	mov x0, x19
 	bl part2
-
-	mov w1, w0
-	adr x0, part2_answer
-	bl printf
+	bl put_int
 
 	mov x0, 0
 .Lmain_ret:
-	ldr x19, [sp], 0x10
-	ldp x29, lr, [sp], 0x10
-	ret
+	mov w8, 94
+	svc 0
 .Lmain_err:
 	mov x0, 1
 	b .Lmain_ret
