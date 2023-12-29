@@ -3,6 +3,8 @@ filename:
 .ascii "input.txt\0"
 part1_str:
 .ascii "part 1: \0"
+part2_str:
+.ascii "part 2: \0"
 red:
 .ascii " red\0\0\0\0"
 green:
@@ -28,6 +30,12 @@ _start:
 
 	mov x0, x19
 	bl part1
+	bl put_int
+
+	adr x0, part2_str
+	bl put_string
+	mov x0, x19
+	bl part2
 	bl put_int
 
 	mov w0, 0
@@ -81,6 +89,87 @@ part1:
 .Lpart1_done:
 	mov w0, w21
 
+	ldp x20, x21, [sp], 0x10
+	ldp lr, x19, [sp], 0x10
+	ret
+
+part2:
+	stp lr, x19, [sp, -0x10]!
+	stp x20, x21, [sp, -0x10]!
+	str x22, [sp, -0x10]!
+
+	// x0 = input pointer
+	// w19 = line max red
+	// w20 = line max green
+	// w21 = line max blue
+	// w22 = result
+
+	mov w22, 0
+
+.Lpart2_start_line:
+	ldrb w1, [x0, 1]
+	tst w1, w1
+	b.eq .Lpart2_done
+
+	mov w19, 0
+	mov w20, 0
+	mov w21, 0
+
+	bl parse_number
+.Lpart2_loop:
+	bl parse_number
+
+	ldr x2, [x0]
+	adr x3, red
+
+	ldr x4, [x3], 8
+	and x5, x2, 0xffffffff
+	cmp x5, x4
+	b.eq .Lpart2_set_line_max_red
+	ldr x4, [x3], 8
+	and x5, x2, 0xffffffffffff
+	cmp x5, x4
+	b.eq .Lpart2_set_line_max_green
+	ldr x4, [x3], 8
+	and x5, x2, 0xffffffffff
+	cmp x5, x4
+	b.eq .Lpart2_set_line_max_blue
+
+	// should never happen ¯\_(ツ)_/¯
+	b .Lpart2_done
+
+.Lpart2_loop_cont:
+	ldrb w1, [x0]
+	cmp w1, 0xa
+	b.ne .Lpart2_loop
+
+	mul w19, w19, w20
+	madd w22, w19, w21, w22
+	b .Lpart2_start_line
+
+.Lpart2_set_line_max_red:
+	add x0, x0, 4
+	cmp w19, w1
+	b.ge .Lpart2_loop_cont
+	mov w19, w1
+	b .Lpart2_loop_cont
+.Lpart2_set_line_max_green:
+	add x0, x0, 6
+	cmp w20, w1
+	b.ge .Lpart2_loop_cont
+	mov w20, w1
+	b .Lpart2_loop_cont
+.Lpart2_set_line_max_blue:
+	add x0, x0, 5
+	cmp w21, w1
+	b.ge .Lpart2_loop_cont
+	mov w21, w1
+	b .Lpart2_loop_cont
+
+.Lpart2_done:
+	mov w0, w22
+
+	ldr x22, [sp], 0x10
 	ldp x20, x21, [sp], 0x10
 	ldp lr, x19, [sp], 0x10
 	ret
