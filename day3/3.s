@@ -5,6 +5,8 @@ file_error_msg:
 .ascii "failed to load file\n\0"
 part1_msg:
 .ascii "part 1 answer: \0"
+part2_msg:
+.ascii "part 2 answer: \0"
 
 .text
 
@@ -23,6 +25,12 @@ _start:
 	bl put_string
 	mov x0, x19
 	bl part1
+	bl put_int
+
+	adr x0, part2_msg
+	bl put_string
+	mov x0, x19
+	bl part2
 	bl put_int
 
 	mov w0, 0
@@ -112,6 +120,49 @@ part1:
 
 	ldp x24, x25, [sp], 0x10
 	ldp x22, x23, [sp], 0x10
+	ldp x20, x21, [sp], 0x10
+	ldp x19, lr, [sp], 0x10
+	ret
+
+part2:
+	stp x19, lr, [sp, -0x10]!
+	stp x20, x21, [sp, -0x10]!
+	str x22, [sp, -0x10]!
+
+	// x19 = input pointer
+	// w20 = running total
+	// w21 = char index
+	// w22 = row length
+	mov x19, x0
+	mov w20, wzr
+	mov w21, wzr
+	mov w22, wzr
+
+	bl find_row_length
+	mov w22, w0
+
+.Lpart2_loop:
+	add x1, x19, x21
+	ldrb w0, [x1]
+	cbz w0, .Lpart2_done
+	cmp w0, '*'
+	b.eq .Lpart2_eval_gear
+	add w21, w21, 1
+	b .Lpart2_loop
+
+.Lpart2_eval_gear:
+	mov x0, x19
+	mov w1, w21
+	mov w2, w22
+	bl evaluate_gear
+	add w20, w20, w0
+	add w21, w21, 1
+	b .Lpart2_loop
+
+.Lpart2_done:
+	mov w0, w20
+
+	ldr x22, [sp], 0x10
 	ldp x20, x21, [sp], 0x10
 	ldp x19, lr, [sp], 0x10
 	ret
@@ -213,5 +264,182 @@ find_symbol:
 	mov w4, 1
 	ret
 .Lfind_symbol_is_symbol_false:
+	mov w4, wzr
+	ret
+
+evaluate_gear:
+	str lr, [sp, -0x10]!
+	// x0 = input buffer
+	// w1 = char index
+	// w2 = row length
+
+	// x5, x6 = pointer to numbers 1 & 2
+	mov x5, xzr
+	mov x6, xzr
+
+	// if this is the first character, the first position we can check is to the right
+	cbz w1, .Levaluate_gear_right
+	// if we're on the first row, we can't check above
+	cmp w1, w2
+	b.le .Levaluate_gear_left
+
+	add x3, x0, x1
+	sub x3, x3, x2
+	ldrb w4, [x3]
+	bl .Levaluate_gear_is_number
+	cbz w4, .Levaluate_gear_above_mid
+	bl .Levaluate_gear_set_number
+	ldrb w4, [x3, -1]
+	bl .Levaluate_gear_is_number
+	// if both above right and above mid are numeric, we can only have one number above
+	cbz w4, .Levaluate_gear_above_left
+	b .Levaluate_gear_left
+.Levaluate_gear_above_mid:
+	sub x3, x3, 1
+	ldrb w4, [x3]
+	bl .Levaluate_gear_is_number
+	cbz w4, .Levaluate_gear_above_left
+	bl .Levaluate_gear_set_number
+	b .Levaluate_gear_left
+.Levaluate_gear_above_left:
+	add x3, x0, x1
+	sub x3, x3, x2
+	ldrb w4, [x3, -2]!
+	bl .Levaluate_gear_is_number
+	cbz w4, .Levaluate_gear_left
+	bl .Levaluate_gear_set_number
+
+.Levaluate_gear_left:
+	add x3, x0, x1
+	ldrb w4, [x3, -1]!
+	bl .Levaluate_gear_is_number
+	cbz w4, .Levaluate_gear_right
+	bl .Levaluate_gear_set_number
+	cbz w4, .Levaluate_gear_invalid
+.Levaluate_gear_right:
+	add x3, x0, x1
+	ldrb w4, [x3, 1]!
+	bl .Levaluate_gear_is_number
+	cbz w4, .Levaluate_gear_below_left
+	bl .Levaluate_gear_set_number
+	cbz w4, .Levaluate_gear_invalid
+
+.Levaluate_gear_below_left:
+	// check if we're on the last row
+	add w3, w2, 1
+	sub w4, w2, 1
+	mul w3, w3, w4
+	cmp w1, w3
+	b.gt .Levaluate_gear_check
+
+	add x3, x0, x1
+	add x3, x3, x2
+	ldrb w4, [x3]
+	bl .Levaluate_gear_is_number
+	cbz w4, .Levaluate_gear_below_mid
+	bl .Levaluate_gear_set_number
+	cbz w4, .Levaluate_gear_invalid
+	ldrb w4, [x3, 1]
+	bl .Levaluate_gear_is_number
+	// if both below left and below mid are numeric, we can only have one number below
+	cbz w4, .Levaluate_gear_below_right
+	b .Levaluate_gear_check
+
+.Levaluate_gear_below_mid:
+	ldrb w4, [x3, 1]!
+	bl .Levaluate_gear_is_number
+	cbz w4, .Levaluate_gear_below_right
+	bl .Levaluate_gear_set_number
+	cbz w4, .Levaluate_gear_invalid
+	b .Levaluate_gear_check
+
+.Levaluate_gear_below_right:
+	add x3, x0, x1
+	add x3, x3, x2
+	ldrb w4, [x3, 2]!
+	bl .Levaluate_gear_is_number
+	cbz w4, .Levaluate_gear_check
+	bl .Levaluate_gear_set_number
+	cbz w4, .Levaluate_gear_invalid
+
+.Levaluate_gear_check:
+	cbz x5, .Levaluate_gear_invalid
+	cbz x6, .Levaluate_gear_invalid
+
+	// find start of first number
+	mov x7, x5
+.Levaluate_gear_check_first_loop:
+	cmp x7, x0
+	b.eq .Levaluate_gear_found_first
+	ldrb w4, [x7, -1]!
+	bl .Levaluate_gear_is_number
+	cbnz w4, .Levaluate_gear_check_first_loop
+	add x7, x7, 1
+
+.Levaluate_gear_found_first:
+	mov x8, x6
+.Levaluate_gear_check_second_loop:
+	ldrb w4, [x8, -1]!
+	bl .Levaluate_gear_is_number
+	cbnz w4, .Levaluate_gear_check_second_loop
+	add x8, x8, 1
+
+	mov w9, 10
+
+	mov x5, xzr
+.Levaluate_gear_check_parse_first_loop:
+	ldrb w4, [x7], 1
+	cmp w4, '0'
+	b.lt .Levaluate_gear_check_parse_second
+	cmp w4, '9'
+	b.gt .Levaluate_gear_check_parse_second
+	sub w4, w4, 0x30
+	madd w5, w5, w9, w4
+	b .Levaluate_gear_check_parse_first_loop
+
+.Levaluate_gear_check_parse_second:
+	mov x6, xzr
+.Levaluate_gear_check_parse_second_loop:
+	ldrb w4, [x8], 1
+	cmp w4, '0'
+	b.lt .Levaluate_gear_check_done
+	cmp w4, '9'
+	b.gt .Levaluate_gear_check_done
+	sub w4, w4, 0x30
+	madd w6, w6, w9, w4
+	b .Levaluate_gear_check_parse_second_loop
+
+.Levaluate_gear_check_done:
+	mul w0, w5, w6
+
+	ldr lr, [sp], 0x10
+	ret
+.Levaluate_gear_invalid:
+	mov w0, wzr
+	ldr lr, [sp], 0x10
+	ret
+
+.Levaluate_gear_is_number:
+	cmp w4, '0'
+	b.lt .Levaluate_gear_is_number_false
+	cmp w4, '9'
+	b.gt .Levaluate_gear_is_number_false
+	mov w4, 1
+	ret
+.Levaluate_gear_is_number_false:
+	mov w4, wzr
+	ret
+
+.Levaluate_gear_set_number:
+	cbnz x5, .Levaluate_gear_set_number_skip1
+	mov x5, x3
+	mov w4, 1
+	ret
+.Levaluate_gear_set_number_skip1:
+	cbnz x6, .Levaluate_gear_set_number_too_many
+	mov x6, x3
+	mov w4, 1
+	ret
+.Levaluate_gear_set_number_too_many:
 	mov w4, wzr
 	ret
