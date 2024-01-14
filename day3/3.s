@@ -86,8 +86,7 @@ part1:
 	sub w0, w0, '0'
 	madd w21, w21, w24, w0
 
-	tst w22, w22
-	b.ne .Lpart1_next
+	cbnz w22, .Lpart1_next
 
 	mov x0, x19 // input buffer
 	mov w1, w25 // char index
@@ -100,8 +99,7 @@ part1:
 	b .Lpart1_loop
 
 .Lpart1_non_numeric:
-	tst w22, w22
-	b.eq .Lpart1_skip_add_number
+	cbz w22, .Lpart1_skip_add_number
 	add w20, w20, w21
 	mov w22, wzr
 .Lpart1_skip_add_number:
@@ -141,8 +139,7 @@ find_symbol:
 	// w2 = row length
 
 	// if this is the first character, the first position we can check is to the right
-	tst w1, w1
-	b.eq .Lfind_symbol_right
+	cbz w1, .Lfind_symbol_right
 	// if we're on the first row, we can't check above
 	cmp w1, w2
 	b.le .Lfind_symbol_left
