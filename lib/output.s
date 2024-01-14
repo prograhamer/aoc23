@@ -1,3 +1,4 @@
+.global put_string
 put_string:
 	stp x19, x30, [sp, -0x10]!
 	mov x19, x0
@@ -11,6 +12,7 @@ put_string:
 	ldp x19, x30, [sp], 0x10
 	ret
 
+.global put_int
 put_int:
 	sub sp, sp, 0x20
 

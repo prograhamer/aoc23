@@ -1,3 +1,4 @@
+.global read_file
 read_file:
 	stp x29, lr, [sp, -0x10]!
 	// x19: filename / mapped addr
